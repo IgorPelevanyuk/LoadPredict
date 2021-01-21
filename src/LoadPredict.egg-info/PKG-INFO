@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Name: LoadPredict
+Version: 0.1
+Summary: LoadPrediction on distributed computing infrastructure
+Home-page: UNKNOWN
+Author: ipelevan
+Author-email: gavelock@gmail.com
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
+Provides-Extra: tests
