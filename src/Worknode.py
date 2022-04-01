@@ -1,4 +1,5 @@
 from ResourceUsage import ResourceUsage
+import copy
 
 class Worknode(object):
     cores = 0
@@ -42,11 +43,14 @@ class Worknode(object):
 
     def do_step(self, time=1, usage_response=ResourceUsage()):
         network_share = self.network
-        print(self.full_request)
         if usage_response['network'] < self.full_request['network']:
             count_network_requests = sum([1 for job in self.jobs if job.current_request['network'] != 0])
             network_share = usage_response['network'] / count_network_requests
-        for job in self.jobs:
+            isEstablished = False
+            notFulfiledJobs = copy.copy(self.jobs)
+        for job in notFulfiledJobs:
+            if job.current_request['network'] < network_share:
+                job.do_step(ResourceUsage({"network": job.current_request['network']}))
             cpu_usage = min(self.db12 * time, job.current_request['cpu_usage'])
             # ram usage - think about incremental requests and static requests
             network_usage = min(network_share, job.current_request['network'])
@@ -55,7 +59,6 @@ class Worknode(object):
                 "network": network_usage,
             })
             job.do_step(job_usage)
-            print(job_usage)
         self.jobs = [job for job in self.jobs if not job.isDone]
 
     def submit_job(self, job):
