@@ -32,15 +32,27 @@ def test_worknode_complex():
     wn.submit_job(job4)
     request1 = wn.try_step(time=1)
     assert request1 == ResourceUsage({'network': 2000000})
-    print(request1)
-    wn.do_step(time=1, usage_response=ResourceUsage({'network': 2000000}))
+    wn.do_step(time=1, usage_response=request1)
     assert wn.jobs[0].current_task == 0
     assert wn.jobs[1].current_task == 1
 
     request2 = wn.try_step(time=1)
-    wn.do_step(time=1, usage_response=ResourceUsage({'network': 2000000}))
+    wn.do_step(time=1, usage_response=request2)
 
     request3 = wn.try_step(time=1)
-    wn.do_step(time=1, usage_response=ResourceUsage({'network': 2000000}))
+    wn.do_step(time=1, usage_response=request3)
     assert wn.jobs[0].current_task == 1
     assert wn.jobs[1].current_task == 1
+
+def test_worknode_available_slots():
+    wn = Worknode(4, 10, 16000, 2000000)
+    assert wn.get_available_slots() == 4
+    wn.submit_job(job1)
+    wn.submit_job(job2)
+    assert wn.get_available_slots() == 2
+    wn.submit_job(job3)
+    assert wn.get_available_slots() == 1
+    for i in range(100):
+        request = wn.try_step(time=1)
+        wn.do_step(time=1, usage_response=request)
+    assert wn.get_available_slots() == 4

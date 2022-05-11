@@ -21,7 +21,6 @@ class Job():
             return True
         is_task_done = self.tasks[self.current_task].do_step(usage_response)
         if is_task_done:
-            print('task is done')
             self.current_task += 1
             if self.current_task >= len(self.tasks):
                 self.isDone = True

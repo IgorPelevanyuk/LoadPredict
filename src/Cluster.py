@@ -8,7 +8,8 @@ class Cluster(object):
     requests = []
     full_request = ResourceUsage()
 
-    def __init__(self, network):
+    def __init__(self, worknodes, network):
+        self.worknodes = worknodes
         self.network = network
 
     def add_worknode(self, worknode):
@@ -43,3 +44,8 @@ class Cluster(object):
                 "network": network_usage,
             })
             worknode.do_step(worknode_usage)
+
+    def match_jobs(self, job_queue):
+        for worknode in self.worknodes:
+            for i in range(worknode.get_available_slots()):
+                worknode.submit_job(job_queue.pop_job())

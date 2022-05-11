@@ -2,21 +2,19 @@ from ResourceUsage import ResourceUsage
 import copy
 
 class Worknode(object):
-    cores = 0
-    db12 = 0
-    ram = 0
-    network = 0
-
-    jobs = []
-    requests = []
-    full_request = ResourceUsage()
-    constrained_request = ResourceUsage()
+    #jobs = []
+    #requests = []
+    #full_request = ResourceUsage()
+    #constrained_request = ResourceUsage()
 
     def __init__(self, cores, db12, ram, network):
         self.cores = cores
         self.db12 = db12
         self.ram = ram
         self.network = network
+
+        self.jobs = []
+        self.requests = []
 
     def collect_requests(self, time):
         self.requests = []
@@ -46,9 +44,7 @@ class Worknode(object):
         if usage_response['network'] < self.full_request['network']:
             count_network_requests = sum([1 for job in self.jobs if job.current_request['network'] != 0])
             network_share = usage_response['network'] / count_network_requests
-            isEstablished = False
-            notFulfiledJobs = copy.copy(self.jobs)
-        for job in notFulfiledJobs:
+        for job in self.jobs:
             if job.current_request['network'] < network_share:
                 job.do_step(ResourceUsage({"network": job.current_request['network']}))
             cpu_usage = min(self.db12 * time, job.current_request['cpu_usage'])
@@ -62,7 +58,14 @@ class Worknode(object):
         self.jobs = [job for job in self.jobs if not job.isDone]
 
     def submit_job(self, job):
-        self.jobs.append(job)
+        if job is not None:
+            self.jobs.append(job)
 
     def count_jobs(self):
         return len(self.jobs)
+
+    def get_slots(self):
+        return self.cores
+
+    def get_available_slots(self):
+        return self.get_slots() - self.count_jobs()
