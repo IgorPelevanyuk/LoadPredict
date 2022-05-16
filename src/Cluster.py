@@ -43,9 +43,24 @@ class Cluster(object):
             worknode_usage = ResourceUsage({
                 "network": network_usage,
             })
-            worknode.do_step(worknode_usage)
+            worknode.do_step(time=time, usage_response = worknode_usage)
 
-    def match_jobs(self, job_queue):
+    def match_jobs(self, job_queue, amount=None):
+        if amount is not None:
+            submitted = 0
+            for worknode in self.worknodes:
+                for i in range(worknode.get_available_slots()):
+                    worknode.submit_job(job_queue.pop_job())
+                    submitted += 1
+                    if submitted == amount:
+                        return
+
         for worknode in self.worknodes:
             for i in range(worknode.get_available_slots()):
                 worknode.submit_job(job_queue.pop_job())
+
+    def get_available_slots(self):
+        free_slots = 0
+        for worknode in self.worknodes:
+            free_slots += worknode.get_available_slots()
+        return free_slots

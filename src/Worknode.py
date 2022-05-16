@@ -37,6 +37,7 @@ class Worknode(object):
         self.form_consolidated_request()
         # self.apply_constraints(time)
         # On upper levels CPU and RAM is irrelevant
+        self.current_request = ResourceUsage({"network": min(self.network, self.full_request['network'])})
         return ResourceUsage({"network": min(self.network, self.full_request['network'])})
 
     def do_step(self, time=1, usage_response=ResourceUsage()):
