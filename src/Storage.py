@@ -2,31 +2,41 @@ from ResourceUsage import ResourceUsage
 
 
 class Storage(object):
-    network = 0
-
-    requests = {}
-    full_request = ResourceUsage()
-    responses = {}
 
     def __init__(self, network):
         self.network = network
 
-    def add_request(self, id, request):
-        self.requests[id] = request
+        self.requests = {}
+        self.current_network_share = 0
+        self.response = {}
+        self.current_bandwidth = self.network
 
-    def form_consolidated_request(self):
-        self.full_request = ResourceUsage()
-        for request_id in self.requests:
-            self.full_request = self.full_request + self.requests[request_id]
+    def add_request(self, cluster, request):
+        self.requests[cluster] = request
 
-    def do_step(self, time):
-        network_share = self.network
-        if self.network < self.full_request['network']:
-            count_network_requests = sum([1 for request_id in self.requests if self.requests[request_id]['network'] != 0])
-            network_share = self.network / count_network_requests
-        for request_id in self.requests:
-            network_usage = min(network_share, self.requests[request_id]['network'])
-            cluster_usage = ResourceUsage({
-                "network": network_usage,
-            })
-            self.responses[request_id] = cluster_usage
+    def calculate_share(self):
+        requested = sum([self.requests[cluster]['network'] for cluster in self.requests])
+        full_response = min(requested, self.current_bandwidth)
+        count_network_requests = sum([1 for cluster in self.requests if self.requests[cluster]['network'] != 0])
+        self.current_network_share = full_response / count_network_requests
+
+    def apply_current_network_share(self):
+        is_bandwidth_changed = False
+        for cluster in list(self.requests):
+            if self.requests[cluster]['network'] < self.current_network_share:
+                self.response[cluster] = ResourceUsage({'network': self.requests[cluster]['network']})
+                self.current_bandwidth -= self.requests[cluster]['network']
+                del self.requests[cluster]
+                is_bandwidth_changed = True
+        return is_bandwidth_changed
+
+    def calculate_responses(self):
+        self.response = {}
+        self.current_bandwidth = self.network
+        while len(self.requests) != 0:
+            self.calculate_share()
+            is_changed = self.apply_current_network_share()
+            if not is_changed:
+                for cluster in list(self.requests.keys()):
+                    self.response[cluster] = ResourceUsage({'network': self.current_network_share})
+                    del self.requests[cluster]

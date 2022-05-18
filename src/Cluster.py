@@ -2,15 +2,12 @@ from ResourceUsage import ResourceUsage
 
 
 class Cluster(object):
-    network = 0
-
-    worknodes = []
-    requests = []
-    full_request = ResourceUsage()
 
     def __init__(self, worknodes, network):
         self.worknodes = worknodes
         self.network = network
+        self.requests = []
+        self.full_request = ResourceUsage()
 
     def add_worknode(self, worknode):
         self.worknodes.append(worknode)
@@ -31,6 +28,7 @@ class Cluster(object):
         self.form_consolidated_request()
         # self.apply_constraints(time)
         # On upper levels CPU and RAM is irrelevant
+        self.current_request = ResourceUsage({"network": min(self.network, self.full_request['network'])})
         return ResourceUsage({"network": min(self.network, self.full_request['network'])})
 
     def do_step(self, time=1, usage_response=ResourceUsage()):
