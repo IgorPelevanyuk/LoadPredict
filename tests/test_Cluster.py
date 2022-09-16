@@ -20,7 +20,7 @@ jobqueue = JobQueue([copy.deepcopy(default_job) for i in range(100)])
 
 def test_cluster_create():
     global cluster
-    cluster = Cluster(worknodes, 1000000)
+    cluster = Cluster(worknodes, 1000000, "Cluster")
 
 def test_cluster_match_jobs():
     assert jobqueue.get_size() == 100

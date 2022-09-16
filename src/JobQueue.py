@@ -1,7 +1,7 @@
 class JobQueue():
     jobs = []
 
-    def __init__(self, jobs):
+    def __init__(self, jobs=[]):
         self.jobs = jobs
 
     def pop_job(self):

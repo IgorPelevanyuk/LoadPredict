@@ -42,7 +42,7 @@ class TransferTask(Task):
         return usage_request
 
     def do_step(self, usage_response):
-        self.transferred += usage_response.resource_usage['network']
+        self.transferred += int(usage_response.resource_usage['network'])
         if self.transferred >= self.transfer_amount:
             return True
         return False

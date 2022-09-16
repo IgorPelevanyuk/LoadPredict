@@ -1,4 +1,5 @@
 from ResourceUsage import ResourceUsage
+from Utils import Distributor
 import copy
 
 class Worknode(object):
@@ -14,18 +15,21 @@ class Worknode(object):
         self.network = network
 
         self.jobs = []
-        self.requests = []
+        self.requests = {}
+
+        self.current_request = ResourceUsage()
+        self.current_usage = ResourceUsage()
 
     def collect_requests(self, time):
-        self.requests = []
+        self.requests = {}
         for job in self.jobs:
             request = job.try_step(time)
-            self.requests.append(request)
+            self.requests[job] = request
 
     def form_consolidated_request(self):
         self.full_request = ResourceUsage()
-        for request in self.requests:
-            self.full_request = self.full_request + request
+        for job in self.requests:
+            self.full_request = self.full_request + self.requests[job]
 
     def apply_constraints(self, time):
         self.constrained_request['network'] = min(self.network * time, self.full_request['network'])
@@ -37,25 +41,25 @@ class Worknode(object):
         self.form_consolidated_request()
         # self.apply_constraints(time)
         # On upper levels CPU and RAM is irrelevant
-        self.current_request = ResourceUsage({"network": min(self.network, self.full_request['network'])})
-        return ResourceUsage({"network": min(self.network, self.full_request['network'])})
+        self.current_request = ResourceUsage({"network": min(self.network * time, self.full_request['network'])})
+        return self.current_request
 
     def do_step(self, time=1, usage_response=ResourceUsage()):
-        network_share = self.network
-        if usage_response['network'] < self.full_request['network']:
-            count_network_requests = sum([1 for job in self.jobs if job.current_request['network'] != 0])
-            network_share = usage_response['network'] / count_network_requests
+        self.current_period = time
+        self.current_usage = ResourceUsage()
+        distributor = Distributor(usage_response['network'])
+        for job in self.requests:
+            distributor.add_request(job, self.requests[job]['network'])
+        response = distributor.calculate_responses()
         for job in self.jobs:
-            if job.current_request['network'] < network_share:
-                job.do_step(ResourceUsage({"network": job.current_request['network']}))
             cpu_usage = min(self.db12 * time, job.current_request['cpu_usage'])
-            # ram usage - think about incremental requests and static requests
-            network_usage = min(network_share, job.current_request['network'])
+            network_usage = response[job]
             job_usage = ResourceUsage({
                 "cpu_usage": cpu_usage,
                 "network": network_usage,
             })
             job.do_step(job_usage)
+            self.current_usage += job_usage
         self.jobs = [job for job in self.jobs if not job.isDone]
 
     def submit_job(self, job):
@@ -70,3 +74,9 @@ class Worknode(object):
 
     def get_available_slots(self):
         return self.get_slots() - self.count_jobs()
+
+    def get_cpu_usage(self):
+        return self.current_usage["cpu_usage"] / self.current_period
+
+    def get_network_usage(self):
+        return self.current_usage["network"] / self.current_period
